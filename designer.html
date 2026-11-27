@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Energy Redirect Designer</title>
+<meta name="theme-color" content="#07090c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* VOICE: field tool for a solar rep: fast, sure, numbers first.
+   IDEA: a roof plan sheet: satellite photo, drawn planes, panels laid on top.
+   PICTURE: the live roof canvas with the panel layout, at the top.
+   COLOUR and TYPE: Energy Redirect teal #00d4c8 on deep #07090c; Roboto.
+   LAYOUT: canvas + tools first, then system readout, roof planes, customer, savings, proposal. */
+:root{color-scheme:light dark;--bg:light-dark(#f3f6f7,#07090c);--card:light-dark(#fff,#10151b);--ink:light-dark(#0b1116,#e9f1f3);--mute:light-dark(#4e5b63,#9aabb3);--line:light-dark(#d5dee2,#22303a);--teal:#00d4c8;--tealink:light-dark(#00756f,#00d4c8);--warn:#ff8a3d}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:clip}
+header{background:#07090c;color:#e9f1f3;padding:14px max(4vw,14px);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header b{font-size:20px;font-weight:900;letter-spacing:.2px}header b span{color:var(--teal)}
+header .sp{flex:1}
+.wrap{max-width:1240px;margin:0 auto;padding:14px max(4vw,14px) 60px;display:grid;gap:14px;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+@media(max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.card h2{font-size:17px;margin:0 0 10px;font-weight:700}
+.stage{grid-row:span 3;display:flex;flex-direction:column;gap:10px;align-self:start;position:sticky;top:10px}
+@media(max-width:900px){.stage{position:static}}
+.cv{position:relative;overflow:auto;border-radius:10px;background:#0d1a24;max-height:70vh;touch-action:pan-x pan-y}
+.cv canvas{display:block}
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+button,.btn{font:500 15px Roboto,system-ui,sans-serif;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.on{background:var(--teal);color:#07090c;border-color:var(--teal)}
+button.pri{background:var(--teal);color:#07090c;border-color:var(--teal);font-weight:700}
+button.del{color:#e5484d}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.hint{font-size:14px;color:var(--mute);min-height:21px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:8px}
+input,select{display:block;width:100%;font:16px Roboto,system-ui,sans-serif;min-height:44px;padding:8px 10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-top:3px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 10px}
+.big{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stat{background:var(--bg);border-radius:10px;padding:10px}
+.stat i{display:block;font-style:normal;font-size:13px;color:var(--mute)}
+.stat b{font-size:clamp(22px,4vw,30px);font-weight:900;white-space:nowrap}
+.stat.k b{color:var(--tealink)}
+.planes{display:grid;gap:8px}
+.pl{border:1px solid var(--line);border-radius:10px;padding:10px}
+.pl.sel{border-color:var(--teal);box-shadow:0 0 0 2px color-mix(in srgb,var(--teal) 35%,transparent)}
+.pl .top{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
+.pl .dot{width:14px;height:14px;border-radius:4px;flex:none}
+.pl .top b{flex:1}.pl .top small{color:var(--mute);white-space:nowrap}
+.bars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;align-items:end;height:110px;margin-top:6px}
+.bars div{background:var(--teal);border-radius:4px 4px 0 0;position:relative}
+.bl{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;font-size:12px;color:var(--mute);text-align:center}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px}
+.row span:last-child{font-weight:700;white-space:nowrap;text-align:right}
+.note{font-size:13px;color:var(--mute);margin:8px 0 0}
+.warn{color:var(--warn);font-weight:500}
+.presets{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+dialog{border:0;border-radius:14px;padding:18px;background:var(--card);color:var(--ink);max-width:340px;width:90vw}
+dialog::backdrop{background:#000a}
+.plist{display:grid;gap:6px;max-height:50vh;overflow:auto;margin:10px 0}
+.plist button{text-align:left;width:100%}
+textarea{width:100%;min-height:200px;font:14px/1.45 Roboto,system-ui,sans-serif;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px}
+input[hidden]{display:none}
+.srch{position:relative}
+.srch input{padding-left:12px;font-size:16px}
+.sug{position:absolute;left:0;right:0;top:100%;z-index:20;list-style:none;margin:4px 0 0;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px #0005;display:none}
+.sug.open{display:block}
+.sug li{padding:10px;border-radius:8px;cursor:pointer;min-height:44px;font-size:15px}
+.sug li b{font-weight:700}.sug li small{display:block;color:var(--mute);font-size:13px}
+.sug li[aria-selected=true],.sug li:hover{background:color-mix(in srgb,var(--teal) 18%,transparent)}
+.gscan{border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14px}
+.gscan b{color:var(--tealink)}
+header a{color:#9fe;text-decoration:none;font-size:15px}
+.tag{font-size:12px;color:var(--mute)}
+@media(prefers-reduced-motion:no-preference){.bars div{transition:height .35s ease}}
+</style>
+</head>
+<body>
+<header><a href="./" aria-label="Back to the Energy Redirect app">← App</a><b>Energy <span>Redirect</span> Designer</b><span class="sp"></span>
+<button id="bProjects">Projects</button><button id="bNew">New</button></header>
+
+<div class="wrap">
+<section class="card stage">
+ <div class="srch">
+  <label style="margin:0">Property address<input id="aq" type="search" autocomplete="off" placeholder="Start typing an address…" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug"></label>
+  <ul class="sug" id="sug" role="listbox"></ul>
+ </div>
+ <div class="hint" id="gStat"></div>
+ <details id="keyBox"><summary class="tag" style="cursor:pointer;min-height:32px">Google API key</summary>
+  <label>Google Maps Platform key (saved on this device)<input id="iKey" autocomplete="off" spellcheck="false" placeholder="Paste key, or set GOOGLE_KEY in designer.html"></label></details>
+ <div class="tools">
+  <label class="btn" style="display:inline-flex;align-items:center;margin:0;color:var(--ink);font-size:15px">Roof photo<input id="fImg" type="file" accept="image/*" hidden></label>
+  <button id="mScale">Set scale</button>
+  <button id="mDraw">Draw plane</button>
+  <button id="mRemove">Tap panels</button>
+  <button id="bUndo">Undo</button>
+  <button id="bFinish" hidden class="pri">Finish plane</button>
+  <span class="sp" style="flex:1"></span>
+  <button id="zOut" aria-label="Zoom out">−</button><button id="zIn" aria-label="Zoom in">+</button>
+ </div>
+ <div class="cv" id="cv"><canvas id="c"></canvas></div>
+ <div class="hint" id="hint"></div>
+ <p class="note">Pick an address and the satellite view, scale and Google roof scan load on their own. No Google key or no coverage? Upload a north-up screenshot and use Set scale.</p>
+</section>
+
+<section class="card">
+ <h2>System</h2>
+ <div class="presets"><span class="tag" style="align-self:center">Fit to:</span>
+  <button data-t="8">8 kW</button><button data-t="10">10 kW</button><button data-t="12">12 kW</button><button data-t="0">Max roof</button></div>
+ <div class="big">
+  <div class="stat k"><i>System size</i><b id="sKw">0</b></div>
+  <div class="stat"><i>Panels</i><b id="sPn">0</b></div>
+  <div class="stat"><i>Year-1 production</i><b id="sProd">0</b></div>
+  <div class="stat k"><i>Bill offset</i><b id="sOff">0%</b></div>
+ </div>
+ <div class="hint" id="fitMsg" style="margin-top:6px"></div>
+ <div class="bars" id="bars"></div><div class="bl"><span>J</span><span>F</span><span>M</span><span>A</span><span>M</span><span>J</span><span>J</span><span>A</span><span>S</span><span>O</span><span>N</span><span>D</span></div>
+ <p class="note">Tesla Powerwall included with every install.</p>
+</section>
+
+<section class="card">
+ <h2>Roof planes</h2>
+ <div class="gscan" id="gscan" hidden></div>
+ <div class="planes" id="planes" style="margin-top:8px"></div>
+</section>
+
+<section class="card">
+ <h2>Customer</h2>
+ <label>Homeowner name (on deed)<input id="iName"></label>
+ <label>Address<input id="iAddr"></label>
+ <div class="g2">
+  <label>Avg monthly PG&amp;E bill ($)<input id="iBill" type="number" inputmode="decimal"></label>
+  <label>Or annual usage (kWh)<input id="iKwh" type="number" inputmode="numeric" placeholder="from bill"></label>
+  <label>PG&amp;E rate ($/kWh)<input id="iPge" type="number" step="0.01" inputmode="decimal"></label>
+  <label>PPA rate ($/kWh)<input id="iPpa" type="number" step="0.01" inputmode="decimal"></label>
+ </div>
+ <details><summary class="tag" style="cursor:pointer;min-height:32px">Panel and model settings</summary>
+  <div class="g3" style="margin-top:8px">
+   <label>Panel watts<input id="iW" type="number"></label>
+   <label>Length (ft)<input id="iL" type="number" step="0.01"></label>
+   <label>Width (ft)<input id="iWd" type="number" step="0.01"></label>
+   <label>Row gap (ft)<input id="iGap" type="number" step="0.05"></label>
+   <label>PG&amp;E rise %/yr<input id="iEsc" type="number" step="0.5"></label>
+   <label>Panel wear %/yr<input id="iDeg" type="number" step="0.1"></label>
+  </div>
+
+ </details>
+</section>
+
+<section class="card">
+ <h2>Savings</h2>
+ <div id="sav"></div>
+ <p class="note">PPA: 25 years, flat rate, no escalation, $0 down, fully monitored and warrantied. Production uses Google Solar API panel estimates (DC, ×0.85 to AC) when a roof scan loads, otherwise a Sacramento-valley sun model with 14% losses. Confirm with the installer's design before signing.</p>
+</section>
+
+<section class="card">
+ <h2>Proposal</h2>
+ <div class="tools"><button class="pri" id="bSave">Save project</button><button id="bCopy">Copy proposal text</button></div>
+ <div class="hint" id="saveMsg"></div>
+ <textarea id="prop" readonly aria-label="Proposal text"></textarea>
+</section>
+</div>
+
+<dialog id="dScale"><h2 style="margin:0 0 8px;font-size:18px">How long is that line?</h2>
+ <label>Length in feet<input id="iFt" type="number" step="0.1" inputmode="decimal" value="16"></label>
+ <div class="tools"><button class="pri" id="okScale">Set scale</button><button id="noScale">Cancel</button></div></dialog>
+<dialog id="dProj"><h2 style="margin:0;font-size:18px">Saved projects</h2><div class="plist" id="plist"></div>
+ <button id="closeProj">Close</button></dialog>
+
+<script>
+{
+/* ===== CONFIG: paste your restricted Google Maps Platform key here (Maps JavaScript, Places (New), Maps Static, Solar APIs) ===== */
+const GOOGLE_KEY='';
+/* GA4 Measurement ID, e.g. 'G-XXXXXXXXXX'. Leave blank until you have it. */
+const GA_ID='';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COLORS=['#00d4c8','#ffb020','#ff6b9a','#8b7bff','#4cd964','#4aa8ff'];
+const MON='Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec'.split(' ');
+const KEY='er-designer-projects';
+
+/* ---------- sun model: Sacramento valley monthly GHI, isotropic sky, Erbs split ---------- */
+const GHI=[2.2,3.2,4.6,6.1,7.2,7.9,7.9,7.0,5.8,4.1,2.6,2.0],DIM=[31,28,31,30,31,30,31,31,30,31,30,31];
+const yCache={};
+function yieldKW(tilt,az,lat=38.75){
+ const k=tilt.toFixed(1)+'/'+az.toFixed(0);if(yCache[k])return yCache[k];
+ const r=Math.PI/180,phi=lat*r,b=tilt*r,g=az*r,n=[Math.sin(b)*Math.sin(g),Math.sin(b)*Math.cos(g),Math.cos(b)];
+ let day=0;const mon=[];
+ for(let m=0;m<12;m++){let poa=0,h0=0;const list=[];
+  for(let d=0;d<DIM[m];d++){day++;const dec=23.45*r*Math.sin(2*Math.PI*(284+day)/365),I0=1.367*(1+0.033*Math.cos(2*Math.PI*day/365));
+   for(let t=0.25;t<24;t+=0.5){const w=15*(t-12)*r,cz=Math.sin(phi)*Math.sin(dec)+Math.cos(phi)*Math.cos(dec)*Math.cos(w);if(cz<=0.02)continue;
+    const E=-Math.cos(dec)*Math.sin(w),N=Math.cos(phi)*Math.sin(dec)-Math.sin(phi)*Math.cos(dec)*Math.cos(w);h0+=I0*cz*0.5;list.push([cz,E*n[0]+N*n[1]+cz*n[2],I0])}}
+  const kt=Math.min(0.8,GHI[m]*DIM[m]/h0);
+  for(const[cz,ct,I0]of list){const G=kt*I0*cz,fd=kt<=0.22?1-0.09*kt:0.9511-0.1604*kt+4.388*kt**2-16.638*kt**3+12.336*kt**4,D=G*fd,B=G-D;
+   poa+=0.5*((ct>0?B/cz*ct:0)+D*(1+Math.cos(b))/2+G*0.2*(1-Math.cos(b))/2)}
+  mon.push(poa*0.86*0.96*0.96)}
+ return yCache[k]=mon;
+}
+const pitchDeg=p=>Math.atan(p/12)*180/Math.PI;
+
+/* ---------- project state ---------- */
+function sample(){return{id:'p'+Date.now(),name:'Sample homeowner',addr:'Roseville, CA',bill:450,kwh:'',pge:0.44,ppa:0.24,
+ img:null,iw:900,ih:640,ftPerPx:0.1,panel:{w:400,l:5.65,wd:3.72},gap:0.1,esc:0,deg:0.5,target:8,
+ planes:[{name:'South',pts:[[150,330],[750,330],[750,560],[150,560]],pitch:5,az:180,setback:3,shade:95,orient:'portrait',removed:[]},
+         {name:'West',pts:[[150,110],[420,110],[420,330],[150,330]],pitch:5,az:270,setback:3,shade:90,orient:'portrait',removed:[]}]}}
+let P=sample(),sel=0,mode='view',draft=[],scalePts=[],zoom=1,imgEl=null,layout=[];
+
+/* ---------- geometry ---------- */
+function inside(pt,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const[a,b]=poly[i],[x,y]=poly[j];
+ if((b>pt[1])!==(y>pt[1])&&pt[0]<(x-a)*(pt[1]-b)/(y-b)+a)c=!c}return c}
+function segDist(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy||1;let t=((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L;t=Math.max(0,Math.min(1,t));
+ return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
+function minEdge(p,poly){let m=1e9;for(let i=0;i<poly.length;i++)m=Math.min(m,segDist(p,poly[i],poly[(i+1)%poly.length]));return m}
+function area(poly){let s=0;for(let i=0;i<poly.length;i++){const[a,b]=poly[i],[c,d]=poly[(i+1)%poly.length];s+=a*d-c*b}return Math.abs(s/2)}
+
+function fillPlane(pl){
+ const f=P.ftPerPx,a=pl.az*Math.PI/180,d=[Math.sin(a),-Math.cos(a)],r=[Math.cos(a),Math.sin(a)];
+ const cosP=Math.cos(pitchDeg(pl.pitch)*Math.PI/180),port=pl.orient==='portrait';
+ const along=(port?P.panel.wd:P.panel.l)/f,down=(port?P.panel.l:P.panel.wd)*cosP/f,gap=P.gap/f,sb=pl.setback/f;
+ const pr=pl.pts.map(p=>[p[0]*r[0]+p[1]*r[1],p[0]*d[0]+p[1]*d[1]]);
+ const u0=Math.min(...pr.map(p=>p[0])),u1=Math.max(...pr.map(p=>p[0])),v0=Math.min(...pr.map(p=>p[1])),v1=Math.max(...pr.map(p=>p[1]));
+ const toXY=(u,v)=>[u*r[0]+v*d[0],u*r[1]+v*d[1]];
+ let best=[];
+ for(const ou of[0,1/3,2/3])for(const ov of[0,1/2]){const out=[];
+  for(let v=v0+ov*(down+gap),j=0;v+down<=v1+1e-6;v+=down+gap,j++)for(let u=u0+ou*(along+gap),i=0;u+along<=u1+1e-6;u+=along+gap,i++){
+   const c=[toXY(u,v),toXY(u+along,v),toXY(u+along,v+down),toXY(u,v+down)],mid=toXY(u+along/2,v+down/2);
+   if([...c,mid].every(p=>inside(p,pl.pts)&&minEdge(p,pl.pts)>=sb-0.01))out.push({c,mid})}
+  if(out.length>best.length)best=out}
+ return best.map((p,k)=>({...p,k}));
+}
+
+/* ---------- canvas ---------- */
+const cv=$('c'),ctx=cv.getContext('2d'),box=$('cv');
+function sizeCanvas(){cv.width=P.iw;cv.height=P.ih;const w=box.clientWidth*zoom;cv.style.width=w+'px';cv.style.height=w*P.ih/P.iw+'px'}
+function drawSampleRoof(){ctx.fillStyle='#3f5a3a';ctx.fillRect(0,0,P.iw,P.ih);
+ ctx.fillStyle='#57724d';for(let i=0;i<60;i++){ctx.beginPath();ctx.arc((i*137)%P.iw,(i*89)%P.ih,18+(i%5)*6,0,7);ctx.fill()}
+ ctx.fillStyle='#8f8a82';ctx.fillRect(140,100,620,470);ctx.fillStyle='#a39e95';ctx.fillRect(140,100,290,240);
+ ctx.strokeStyle='#6e6a63';ctx.lineWidth=3;ctx.strokeRect(140,100,620,470);ctx.beginPath();ctx.moveTo(140,330);ctx.lineTo(760,330);ctx.stroke();
+ ctx.fillStyle='#b9b5ad';ctx.fillRect(780,350,100,240);}
+function render(){
+ sizeCanvas();ctx.clearRect(0,0,cv.width,cv.height);
+ if(imgEl)ctx.drawImage(imgEl,0,0,P.iw,P.ih);else drawSampleRoof();
+ const lw=Math.max(2,P.iw/450);
+ if(P.g){const act=gActive();P.g.panels.forEach((pn,i)=>{const on=act.has(i),bl=P.g.block.includes(i);ctx.beginPath();pn.c.forEach((q,k)=>k?ctx.lineTo(...q):ctx.moveTo(...q));ctx.closePath();
+  if(on){ctx.fillStyle='#0b1f3a';ctx.fill();ctx.strokeStyle='#7fe9e3';ctx.lineWidth=lw*.6;ctx.stroke()}
+  else{ctx.strokeStyle=bl?'rgba(255,90,90,.85)':'rgba(255,255,255,.45)';ctx.lineWidth=lw*.5;ctx.stroke()}})}
+ P.planes.forEach((pl,i)=>{const col=COLORS[i%COLORS.length];
+  ctx.beginPath();pl.pts.forEach((p,k)=>k?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();
+  ctx.fillStyle=col+'22';ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=i===sel?lw*2:lw;ctx.stroke();
+  layout[i].forEach(pn=>{const off=pl.removed.includes(pn.k);ctx.beginPath();pn.c.forEach((p,k)=>k?ctx.lineTo(...p):ctx.moveTo(...p));ctx.closePath();
+   ctx.fillStyle=off?'rgba(255,255,255,.12)':'#0b1f3a';ctx.fill();ctx.strokeStyle=off?'rgba(255,255,255,.5)':'#7fe9e3';ctx.lineWidth=lw*.6;ctx.stroke()});
+  if(i===sel){ctx.font=`700 ${Math.round(lw*7)}px Roboto,sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+   pl.pts.forEach((p,k)=>{const q=pl.pts[(k+1)%pl.pts.length],ft=Math.hypot(q[0]-p[0],q[1]-p[1])*P.ftPerPx,mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2,t=ft.toFixed(1)+' ft',w=ctx.measureText(t).width+lw*4;
+    ctx.fillStyle='#07090cdd';ctx.fillRect(mx-w/2,my-lw*5,w,lw*10);ctx.fillStyle='#fff';ctx.fillText(t,mx,my)})}
+  // downslope arrow
+  const c=pl.pts.reduce((s,p)=>[s[0]+p[0]/pl.pts.length,s[1]+p[1]/pl.pts.length],[0,0]),a=pl.az*Math.PI/180,L=lw*14,e=[c[0]+Math.sin(a)*L,c[1]-Math.cos(a)*L];
+  ctx.strokeStyle='#fff';ctx.lineWidth=lw;ctx.beginPath();ctx.moveTo(...c);ctx.lineTo(...e);ctx.stroke();ctx.beginPath();ctx.arc(e[0],e[1],lw*2.2,0,7);ctx.fillStyle='#fff';ctx.fill();
+ });
+ const pts=mode==='scale'?scalePts:draft;
+ if(pts.length){ctx.strokeStyle='#ffb020';ctx.lineWidth=lw*1.5;ctx.setLineDash([lw*4,lw*3]);ctx.beginPath();pts.forEach((p,k)=>k?ctx.lineTo(...p):ctx.moveTo(...p));ctx.stroke();ctx.setLineDash([]);
+  pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],lw*3,0,7);ctx.fillStyle='#ffb020';ctx.fill()})}
+}
+function evPt(e){const b=cv.getBoundingClientRect();return[(e.clientX-b.left)/b.width*cv.width,(e.clientY-b.top)/b.height*cv.height]}
+cv.addEventListener('click',e=>{const p=evPt(e),tol=P.iw/60;
+ if(mode==='draw'){if(draft.length>2&&Math.hypot(p[0]-draft[0][0],p[1]-draft[0][1])<tol)return finishPlane();draft.push(p);setMode('draw');render();return}
+ if(mode==='scale'){scalePts.push(p);if(scalePts.length===2){$('dScale').showModal();$('iFt').focus()}render();return}
+ if(mode==='remove'){if(P.g){const gi=P.g.panels.findIndex(pn=>inside(p,pn.c));
+  if(gi>=0){const b=P.g.block,x=b.indexOf(gi);x<0?b.push(gi):b.splice(x,1);applyTarget();update();return}}
+  for(let i=0;i<P.planes.length;i++){const hit=layout[i].find(pn=>inside(p,pn.c));
+  if(hit){const rm=P.planes[i].removed,x=rm.indexOf(hit.k);x<0?rm.push(hit.k):rm.splice(x,1);P.target=null;sel=i;update();return}}return}
+ const i=P.planes.findIndex(pl=>inside(p,pl.pts));if(i>=0){sel=i;update()}
+});
+function finishPlane(){if(draft.length<3)return;const dirs=[180,270,90,0];
+ P.planes.push({name:'Plane '+(P.planes.length+1),pts:draft,pitch:5,az:dirs[P.planes.length%4],setback:3,shade:95,orient:'portrait',removed:[]});
+ sel=P.planes.length-1;draft=[];setMode('view');recompute();applyTarget();update()}
+const HINTS={view:'Dark panels are in the system. Outlined spots are open roof. White arrow points downslope.',draw:'Tap each roof corner. Tap the first point or Finish plane to close.',
+ scale:'Tap both ends of an edge you know the length of.',remove:'Tap a panel to block it (vent, skylight, tree). The next-best spot fills in to hold the system size.'};
+function setMode(m){mode=m;['mScale','mDraw','mRemove'].forEach(id=>$(id).classList.toggle('on',{mScale:'scale',mDraw:'draw',mRemove:'remove'}[id]===m));
+ $('bFinish').hidden=!(m==='draw'&&draft.length>2);$('hint').textContent=HINTS[m]}
+$('mDraw').onclick=()=>{draft=[];setMode(mode==='draw'?'view':'draw');render()};
+$('mScale').onclick=()=>{scalePts=[];setMode(mode==='scale'?'view':'scale');render()};
+$('mRemove').onclick=()=>setMode(mode==='remove'?'view':'remove');
+$('bFinish').onclick=finishPlane;
+$('bUndo').onclick=()=>{if(mode==='draw'&&draft.length){draft.pop();setMode('draw');render()}else if(mode==='scale'&&scalePts.length){scalePts.pop();render()}};
+$('okScale').onclick=()=>{const ft=+$('iFt').value,[a,b]=scalePts,px=Math.hypot(b[0]-a[0],b[1]-a[1]);if(ft>0&&px>0){P.ftPerPx=ft/px;recompute();applyTarget()}
+ $('dScale').close();scalePts=[];setMode('view');update()};
+$('noScale').onclick=()=>{$('dScale').close();scalePts=[];setMode('view');render()};
+$('zIn').onclick=()=>{zoom=Math.min(4,zoom*1.4);render()};$('zOut').onclick=()=>{zoom=Math.max(1,zoom/1.4);render()};
+$('fImg').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),im=new Image();
+ im.onload=()=>{const s=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);
+  c.getContext('2d').drawImage(im,0,0,c.width,c.height);P.img=c.toDataURL('image/jpeg',0.8);P.geo=null;P.g=null;P.iw=c.width;P.ih=c.height;P.planes=[];P.ftPerPx=0.1;sel=0;
+  loadImg(()=>{recompute();update();scalePts=[];setMode('scale');$('hint').textContent='Photo loaded. First set the scale: tap both ends of an edge you know.'})};im.src=url};
+function loadImg(cb){const src=P.geo?staticUrl(P.geo):P.img;if(!src){imgEl=null;cb&&cb();return}const im=new Image();
+ im.onload=()=>{imgEl=im;cb&&cb()};im.onerror=()=>{imgEl=null;gStat('Satellite image did not load. Check that Maps Static API is enabled for your key.',1);cb&&cb()};im.src=src}
+
+/* ---------- calc ---------- */
+function recompute(){layout=P.planes.map(fillPlane)}
+function planeStats(i){const pl=P.planes[i],n=layout[i].length-layout[i].filter(p=>pl.removed.includes(p.k)).length,kw=n*P.panel.w/1000,
+ mon=yieldKW(pitchDeg(pl.pitch),pl.az).map(v=>v*kw*pl.shade/100);return{n,kw,mon,yr:mon.reduce((a,b)=>a+b,0),spec:yieldKW(pitchDeg(pl.pitch),pl.az).reduce((a,b)=>a+b,0)*pl.shade/100}}
+function gActive(){const s=new Set();if(!P.g)return s;let n=P.g.n;for(let i=0;i<P.g.panels.length&&n>0;i++)if(!P.g.block.includes(i)){s.add(i);n--}return s}
+function gStats(){if(!P.g)return{n:0,mon:Array(12).fill(0),yr:0,segN:[]};const act=gActive(),k=P.panel.w/P.g.capW,mon=Array(12).fill(0),segN=P.g.segs.map(()=>0);
+ act.forEach(i=>{const pn=P.g.panels[i],sg=P.g.segs[pn.seg]||{pitch:20,az:180},shape=yieldKW(sg.pitch,sg.az),tot=shape.reduce((a,b)=>a+b,0);segN[pn.seg]++;
+  shape.forEach((v,m)=>mon[m]+=pn.kwh*0.85*k*v/tot)});return{n:act.size,mon,yr:mon.reduce((a,b)=>a+b,0),segN}}
+function applyTarget(){P.planes.forEach(pl=>pl.removed=[]);
+ let need=P.target?Math.ceil(P.target*1000/P.panel.w):1e9;
+ if(P.g){const avail=P.g.panels.length-P.g.block.length;P.g.n=Math.min(need,avail);need-=P.g.n}
+ if(!P.target)return;let order=P.planes.map((pl,i)=>({i,spec:planeStats(i).spec})).sort((a,b)=>b.spec-a.spec);
+ for(const{i}of order){const lay=layout[i];if(need>=lay.length){need-=lay.length;continue}
+  const sorted=[...lay].sort((a,b)=>a.k-b.k);P.planes[i].removed=sorted.slice(need).map(p=>p.k);need=0}}
+const money=v=>'$'+Math.round(v).toLocaleString('en-US'),num=v=>Math.round(v).toLocaleString('en-US');
+function totals(){const st=P.planes.map((_,i)=>planeStats(i)),G=gStats(),n=st.reduce((a,s)=>a+s.n,0)+G.n,kw=n*P.panel.w/1000,mon=MON.map((_,m)=>st.reduce((a,s)=>a+s.mon[m],0)+G.mon[m]),prod=mon.reduce((a,b)=>a+b,0);
+ const use=+P.kwh>0?+P.kwh:(+P.bill*12)/(+P.pge||0.44),max=(layout.reduce((a,l)=>a+l.length,0)+(P.g?P.g.panels.length-P.g.block.length:0))*P.panel.w/1000;return{st,G,n,kw,mon,prod,use,max}}
+function savings(T){const pge=+P.pge,ppa=+P.ppa,esc=(+P.esc||0)/100,deg=(+P.deg||0)/100;let tot=0,y1=null,rows=[];
+ for(let y=0;y<25;y++){const prod=T.prod*(1-deg)**y,used=Math.min(prod,T.use),rate=pge*(1+esc)**y,before=T.use*rate,after=(T.use-used)*rate+used*ppa,s=before-after;tot+=s;if(!y)y1={before,after,s}}
+ return{y1,tot}}
+
+/* ---------- UI ---------- */
+const fields={iName:'name',iAddr:'addr',iBill:'bill',iKwh:'kwh',iPge:'pge',iPpa:'ppa',iGap:'gap',iEsc:'esc',iDeg:'deg'};
+function fillInputs(){for(const[id,k]of Object.entries(fields))$(id).value=P[k];$('iW').value=P.panel.w;$('iL').value=P.panel.l;$('iWd').value=P.panel.wd}
+for(const[id,k]of Object.entries(fields))$(id).addEventListener('input',e=>{P[k]=['name','addr','kwh'].includes(k)?e.target.value:+e.target.value;
+ if(k==='gap'){recompute();applyTarget()}update()});
+[['iW','w'],['iL','l'],['iWd','wd']].forEach(([id,k])=>$(id).addEventListener('input',e=>{const v=+e.target.value;if(v>0){P.panel[k]=v;recompute();applyTarget();update()}}));
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{P.target=+b.dataset.t||null;applyTarget();update()});
+
+function planeHTML(pl,i,s){const az=[[0,'N'],[90,'E'],[180,'S'],[270,'W']];return`<div class="pl${i===sel?' sel':''}" data-i="${i}">
+ <div class="top" data-sel="${i}"><span class="dot" style="background:${COLORS[i%COLORS.length]}"></span><b>${esc(pl.name)}</b><small>${s.n} panels · ${s.kw.toFixed(2)} kW · ${num(s.spec)} kWh/kW</small></div>
+ ${i===sel?`<div class="g3"><label>Name<input data-f="name" value="${esc(pl.name)}"></label>
+ <label>Pitch (x/12)<input data-f="pitch" type="number" step="0.5" value="${pl.pitch}"></label>
+ <label>Faces (° from N)<input data-f="az" type="number" step="5" value="${pl.az}"></label>
+ <label>Setback (ft)<input data-f="setback" type="number" step="0.5" value="${pl.setback}"></label>
+ <label>Sun access %<input data-f="shade" type="number" step="1" value="${pl.shade}"></label>
+ <label>Panels<select data-f="orient"><option${pl.orient==='portrait'?' selected':''} value="portrait">Portrait</option><option${pl.orient==='landscape'?' selected':''} value="landscape">Landscape</option></select></label></div>
+ <div class="tools">${az.map(([v,t])=>`<button data-az="${v}" class="${pl.az===v?'on':''}">${t}</button>`).join('')}<span style="flex:1"></span><button class="del" data-del="${i}">Delete</button></div>
+ <p class="note">Sloped area ${num(area(pl.pts)*P.ftPerPx**2/Math.cos(pitchDeg(pl.pitch)*Math.PI/180))} sq ft. Fire setbacks vary by roof and AHJ; confirm before final layout.</p>`:''}</div>`}
+$('planes').addEventListener('click',e=>{const t=e.target;
+ if(t.dataset.sel!==undefined||t.closest('[data-sel]')){sel=+t.closest('[data-sel]').dataset.sel;update();return}
+ if(t.dataset.az!==undefined){P.planes[sel].az=+t.dataset.az;recompute();applyTarget();update()}
+ if(t.dataset.del!==undefined){P.planes.splice(+t.dataset.del,1);sel=0;recompute();applyTarget();update()}});
+$('planes').addEventListener('change',e=>{const f=e.target.dataset.f;if(!f)return;const pl=P.planes[sel];pl[f]=['name','orient'].includes(f)?e.target.value:+e.target.value;
+ if(['pitch','az','setback','orient'].includes(f)){recompute();applyTarget()}update()});
+
+function update(){
+ const T=totals(),S=savings(T);
+ $('sKw').textContent=T.kw.toFixed(2)+' kW';$('sPn').textContent=T.n;$('sProd').textContent=num(T.prod)+' kWh';$('sOff').textContent=T.use?Math.round(T.prod/T.use*100)+'%':'–';
+ document.querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on',(+b.dataset.t||null)===P.target));
+ $('fitMsg').innerHTML=P.target&&T.kw<P.target-0.01?`<span class="warn">Roof fits ${T.max.toFixed(2)} kW max with these planes and setbacks.</span>`:`Roof can hold up to ${T.max.toFixed(2)} kW.`;
+ const mx=Math.max(...T.mon,1);$('bars').innerHTML=T.mon.map((v,m)=>`<div style="height:${v/mx*100}%" title="${MON[m]}: ${num(v)} kWh"></div>`).join('');
+ $('gscan').hidden=!P.g;if(P.g){const dir=a=>['N','NE','E','SE','S','SW','W','NW'][Math.round(((a%360)+360)%360/45)%8];
+  $('gscan').innerHTML=`<div><b>Google roof scan</b> · ${esc(P.g.quality)} imagery${P.g.date?' · '+esc(P.g.date):''}</div><div class="tag">${P.g.panels.length} panel spots found · ${T.G.n} in this system</div>`+
+  P.g.segs.map((sg,i)=>T.G.segN[i]?`<div class="row"><span>Face ${i+1}: ${dir(sg.az)} (${Math.round(sg.az)}°), ${Math.round(sg.pitch)}° pitch</span><span>${T.G.segN[i]} panels</span></div>`:'').join('')}
+ $('planes').innerHTML=P.planes.length?P.planes.map((pl,i)=>planeHTML(pl,i,T.st[i])).join(''):(P.g?'<p class="hint">Need panels Google missed? Tap Draw plane to add a face by hand.</p>':'<p class="hint">No roof planes yet. Search an address above, or tap Draw plane and outline each roof face.</p>');
+ const y=S.y1;$('sav').innerHTML=[['Est. annual usage',num(T.use)+' kWh'],['PG&E cost today (yr 1)',money(y.before)],['With Energy Redirect PPA (yr 1)',money(y.after)],['Year-1 savings',money(y.s)],['Monthly savings',money(y.s/12)],['25-year savings',money(S.tot)]]
+  .map(([a,b])=>`<div class="row"><span>${esc(a)}</span><span>${b}</span></div>`).join('')+(T.prod>T.use*1.05?`<p class="note warn">System makes more than the home uses. Extra output earns low export credits; consider a smaller fit.</p>`:'');
+ const roofSq=P.planes.reduce((a,pl)=>a+area(pl.pts)*P.ftPerPx**2/Math.cos(pitchDeg(pl.pitch)*Math.PI/180),0);
+ $('prop').value=`ENERGY REDIRECT · SOLAR PROPOSAL
+${P.name||'Homeowner'}${P.addr?' · '+P.addr:''}
+
+System: ${T.kw.toFixed(2)} kW DC · ${T.n} × ${P.panel.w} W panels + Tesla Powerwall
+Est. year-1 production: ${num(T.prod)} kWh (${T.use?Math.round(T.prod/T.use*100):0}% of est. usage ${num(T.use)} kWh)
+${P.g&&T.G.n?`  • Google Solar roof scan (${P.g.quality} imagery): ${T.G.n} panels\n`:''}${P.planes.map((pl,i)=>T.st[i].n?`  • ${pl.name}: ${T.st[i].n} panels, ${pl.pitch}/12 pitch, facing ${pl.az}°`:'').filter(Boolean).join('\n')}
+
+Your rate: PG&E ${(+P.pge*100).toFixed(0)}¢/kWh → Energy Redirect PPA ${(+P.ppa*100).toFixed(0)}¢/kWh
+Year-1 savings: ${money(y.s)} (${money(y.s/12)}/mo)
+25-year savings: ${money(S.tot)}
+
+Terms: $0 down PPA · 25 years · flat rate, no escalation · fully monitored, full warranty
+Applicant must be on the home's deed. Financing through EnFin: soft credit check, answer within 24 hours.
+Need a new roof? Shingle reroof est. ${money(roofSq*12)} (${num(roofSq)} sq ft at $12/sq ft) — roof loan available on application.
+
+Production figures are estimates and will be confirmed by the final engineered design.
+
+Jameson Stephenson · Energy Redirect
+916-540-8383 · JamesonStephenson@gmail.com`;
+ render();
+}
+
+/* ---------- projects ---------- */
+function getAll(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return[]}}
+$('bSave').onclick=()=>{try{const all=getAll().filter(p=>p.id!==P.id);all.unshift(P);localStorage.setItem(KEY,JSON.stringify(all));$('saveMsg').textContent='Saved in this browser.'}
+ catch{$('saveMsg').textContent='Could not save here (storage full or blocked). Copy the proposal text instead.'}};
+$('bCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('prop').value);$('saveMsg').textContent='Proposal copied.'}catch{$('prop').select();$('saveMsg').textContent='Text selected; copy it from the box.'}};
+$('bNew').onclick=()=>{P={...sample(),id:'p'+Date.now(),name:'',addr:'',planes:[],target:null,geo:null,g:null};imgEl=null;$('aq').value='';sel=0;fillInputs();recompute();update();$('hint').textContent='New project: type the address above to start.'};
+$('bProjects').onclick=()=>{const all=getAll();$('plist').innerHTML=all.length?all.map((p,i)=>`<button data-load="${i}">${esc(p.name||'Untitled')} <span class="tag">${esc(p.addr)}</span></button>`).join(''):'<p class="hint">No saved projects yet.</p>';$('dProj').showModal()};
+$('plist').onclick=e=>{const b=e.target.closest('[data-load]');if(!b)return;P=getAll()[+b.dataset.load];sel=0;fillInputs();$('aq').value=P.addr||'';loadImg(()=>{recompute();update()});$('dProj').close()};
+$('closeProj').onclick=()=>$('dProj').close();
+
+/* ---------- Google: Places autocomplete, Static satellite, Solar API ---------- */
+const ZOOM=20,SC=2,SIZE=640;
+function apiKey(){try{return GOOGLE_KEY||localStorage.getItem('er-gkey')||''}catch{return GOOGLE_KEY}}
+function gStat(t,bad){$('gStat').innerHTML=bad?`<span class="warn">${esc(t)}</span>`:esc(t)}
+function staticUrl(g){return`https://maps.googleapis.com/maps/api/staticmap?center=${g.lat},${g.lng}&zoom=${ZOOM}&size=${SIZE}x${SIZE}&scale=${SC}&maptype=satellite&key=${encodeURIComponent(apiKey())}`}
+const world=(lat,lng)=>{const s=Math.sin(lat*Math.PI/180),k=256*2**ZOOM;return[(lng+180)/360*k,(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*k]};
+function toPx(lat,lng){const c=world(P.geo.lat,P.geo.lng),w=world(lat,lng);return[(w[0]-c[0])*SC+P.iw/2,(w[1]-c[1])*SC+P.ih/2]}
+const mPerPx=lat=>156543.03392*Math.cos(lat*Math.PI/180)/2**ZOOM/SC;
+let gReady=null;
+function loadGoogle(){const key=apiKey();if(!key)return Promise.reject(new Error('nokey'));if(gReady)return gReady;
+ gReady=new Promise((res,rej)=>{window.__erMaps=()=>res(google.maps);const sc=document.createElement('script');
+  sc.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&v=weekly&loading=async&libraries=places&callback=__erMaps`;sc.async=true;sc.onerror=()=>{gReady=null;rej(new Error('load'))};document.head.appendChild(sc)});
+ window.gm_authFailure=()=>gStat('Google rejected the key. Check the key, billing, and that this site is in its allowed websites.',1);return gReady}
+let token=null,sugs=[],hi=-1,tmr=0,seq=0;
+const aq=$('aq'),sugEl=$('sug');
+function closeSug(){sugEl.classList.remove('open');aq.setAttribute('aria-expanded','false');hi=-1}
+function drawSug(){sugEl.innerHTML=sugs.map((s,i)=>{const pp=s.placePrediction,m=pp.mainText?pp.mainText.toString():pp.text.toString(),sub=pp.secondaryText?pp.secondaryText.toString():'';
+ return`<li role="option" id="sg${i}" data-i="${i}" aria-selected="${i===hi}"><b>${esc(m)}</b>${sub?`<small>${esc(sub)}</small>`:''}</li>`}).join('');
+ sugEl.classList.toggle('open',sugs.length>0);aq.setAttribute('aria-expanded',String(sugs.length>0))}
+aq.addEventListener('input',()=>{clearTimeout(tmr);const q=aq.value.trim();if(q.length<3){sugs=[];closeSug();return}
+ tmr=setTimeout(async()=>{const my=++seq;try{const gm=await loadGoogle(),{AutocompleteSuggestion,AutocompleteSessionToken}=await gm.importLibrary('places');
+  token=token||new AutocompleteSessionToken();
+  const r=await AutocompleteSuggestion.fetchAutocompleteSuggestions({input:q,sessionToken:token,includedRegionCodes:['us'],locationBias:{center:{lat:38.79,lng:-121.24},radius:50000}});
+  if(my!==seq)return;sugs=(r.suggestions||[]).filter(s=>s.placePrediction).slice(0,5);hi=-1;drawSug();gStat('')}
+ catch(e){if(e.message==='nokey')gStat('Paste your Google Maps API key in the Google API key box to turn on address search.',1);else gStat('Address search failed. Check that Places API (New) is enabled for your key.',1)}},250)});
+aq.addEventListener('keydown',e=>{if(!sugEl.classList.contains('open'))return;
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();hi=(hi+(e.key==='ArrowDown'?1:-1)+sugs.length)%sugs.length;drawSug();aq.setAttribute('aria-activedescendant','sg'+hi)}
+ else if(e.key==='Enter'){e.preventDefault();pick(hi<0?0:hi)}else if(e.key==='Escape')closeSug()});
+sugEl.addEventListener('pointerdown',e=>{const li=e.target.closest('[data-i]');if(li){e.preventDefault();pick(+li.dataset.i)}});
+aq.addEventListener('blur',()=>setTimeout(closeSug,150));
+async function pick(i){const s=sugs[i];if(!s)return;closeSug();aq.value=s.placePrediction.text.toString();gStat('Loading satellite view…');
+ try{const place=s.placePrediction.toPlace();await place.fetchFields({fields:['location','formattedAddress']});token=null;
+  const lat=place.location.lat(),lng=place.location.lng(),addr=place.formattedAddress||aq.value;aq.value=addr;P.addr=addr;$('iAddr').value=addr;await setLocation(lat,lng)}
+ catch(e){gStat('Could not look up that address.',1)}}
+async function setLocation(lat,lng){
+ P.geo={lat,lng};P.img=null;P.iw=P.ih=SIZE*SC;P.ftPerPx=mPerPx(lat)*3.28084;P.planes=[];P.g=null;P.target=P.target||null;sel=0;zoom=1;
+ loadImg(()=>{recompute();update()});gStat('Scanning the roof with Google Solar…');
+ const key=apiKey();let data=null,lastErr='';
+ for(const q of['HIGH','MEDIUM','BASE']){try{const r=await fetch(`https://solar.googleapis.com/v1/buildingInsights:findClosest?location.latitude=${lat}&location.longitude=${lng}&requiredQuality=${q}&key=${encodeURIComponent(key)}`);
+  const j=await r.json();if(r.ok){data=j;break}lastErr=j.error&&j.error.message||r.status;if(r.status!==404)break}catch(e){lastErr='network';break}}
+ if(!data){recompute();update();gStat(`No Google roof scan here (${lastErr}). Tap Draw plane to outline the roof by hand.`,1);return}
+ const sp=data.solarPotential||{},segs=(sp.roofSegmentStats||[]).map(r=>({pitch:r.pitchDegrees||0,az:r.azimuthDegrees||180})),res=mPerPx(lat),W=sp.panelWidthMeters||1.045,H=sp.panelHeightMeters||1.879;
+ const panels=(sp.solarPanels||[]).map(pn=>{const c=toPx(pn.center.latitude,pn.center.longitude),az=(segs[pn.segmentIndex]||{az:180}).az,ori=pn.orientation==='PORTRAIT'?90:0;
+  const corners=[[W/2,H/2],[W/2,-H/2],[-W/2,-H/2],[-W/2,H/2]].map(([x,y])=>{const d=Math.hypot(x,y),h=(Math.atan2(y,x)*180/Math.PI+ori+az)*Math.PI/180;return[c[0]+d*Math.sin(h)/res,c[1]-d*Math.cos(h)/res]});
+  return{c:corners,seg:pn.segmentIndex,kwh:pn.yearlyEnergyDcKwh||0}});
+ const d=data.imageryDate;P.g={quality:data.imageryQuality||'',date:d?`${d.month}/${d.year}`:'',capW:sp.panelCapacityWatts||400,segs,panels,block:[],n:panels.length};
+ if(!P.target)P.target=null;recompute();applyTarget();update();
+ gStat(panels.length?`Roof scan loaded: ${panels.length} panel spots on ${segs.length} roof faces.`:'Google found the building but no usable panel spots. Draw planes by hand.',!panels.length)}
+$('iKey').value=(()=>{try{return localStorage.getItem('er-gkey')||''}catch{return''}})();
+$('iKey').addEventListener('change',e=>{try{localStorage.setItem('er-gkey',e.target.value.trim())}catch{}gReady=null;if(e.target.value.trim())$('keyBox').open=false;gStat(e.target.value.trim()?'Key saved on this device. Start typing an address.':'')});
+if(GA_ID){const g=document.createElement('script');g.async=true;g.src='https://www.googletagmanager.com/gtag/js?id='+GA_ID;document.head.appendChild(g);
+ window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag('js',new Date());gtag('config',GA_ID)}
+if(!apiKey()){$('keyBox').open=true;gStat('Paste your Google Maps API key below to turn on address search and roof scans.')}
+
+let lastW=0;const ro=new ResizeObserver(()=>{const w=box.clientWidth;if(Math.abs(w-lastW)>24){lastW=w;render()}});ro.observe(box);
+fillInputs();recompute();applyTarget();setMode('view');update();
+}
+</script>
+</body>
+</html>
